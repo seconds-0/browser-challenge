@@ -28,8 +28,10 @@ if [[ -n "${TMUX:-}" ]]; then
 fi
 
 if [[ -d "/Applications/Ghostty.app" ]]; then
-  open -na Ghostty.app --args -e "tmux attach -t $SESSION"
-  exit 0
+  if open -na Ghostty.app --args -e "tmux attach -t $SESSION"; then
+    exit 0
+  fi
+  echo "Ghostty failed to launch; attaching in current terminal instead."
 fi
 
 tmux attach -t "$SESSION"
