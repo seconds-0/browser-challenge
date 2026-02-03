@@ -17,8 +17,11 @@ async fn main() -> anyhow::Result<()> {
     let store =
         TelemetryStore::connect(PathBuf::from(data_dir), database_url, jsonl_enabled).await?;
     let app = telemetryd::build_app(store);
-
-    let addr: SocketAddr = "0.0.0.0:8081".parse().unwrap();
+    let port: u16 = std::env::var("PORT")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(8081);
+    let addr: SocketAddr = format!("0.0.0.0:{}", port).parse().unwrap();
     info!("telemetryd listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app.into_make_service()).await?;
