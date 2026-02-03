@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EventEnvelope",
+  "type": "object",
+  "properties": {
+    "run_id": { "type": "string" },
+    "level_id": { "type": "string" },
+    "episode_id": { "type": "string" },
+    "step_id": { "type": "string" },
+    "ts": { "type": "string" },
+    "kind": { "type": "string" },
+    "data": { "type": "object", "additionalProperties": true }
+  },
+  "required": ["run_id", "level_id", "episode_id", "ts", "kind", "data"]
+}

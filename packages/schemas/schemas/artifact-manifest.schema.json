@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ArtifactManifest",
+  "type": "object",
+  "properties": {
+    "run_id": { "type": "string" },
+    "level_id": { "type": "string" },
+    "episode_id": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string" },
+          "path": { "type": "string" },
+          "content_type": { "type": "string" },
+          "size_bytes": { "type": "number" },
+          "sha256": { "type": "string" }
+        },
+        "required": ["kind", "path"]
+      }
+    }
+  },
+  "required": ["run_id", "level_id", "episode_id", "artifacts"]
+}

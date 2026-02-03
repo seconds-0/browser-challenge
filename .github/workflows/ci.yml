@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install JS deps
+        run: pnpm install
+
+      - name: Lint JS
+        run: pnpm lint
+
+      - name: JS tests
+        run: pnpm test
+
+      - name: Install Playwright browsers
+        run: pnpm --filter worker-playwright exec playwright install --with-deps
+
+      - name: Playwright behavior tests
+        run: pnpm test:e2e
+
+      - name: Rust fmt
+        run: cargo fmt --all -- --check
+
+      - name: Rust clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: cargo test

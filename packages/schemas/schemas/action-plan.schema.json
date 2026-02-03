@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ActionPlan",
+  "type": "object",
+  "properties": {
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/action" }
+    }
+  },
+  "required": ["actions"],
+  "definitions": {
+    "action": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["click", "type", "press", "wait_for", "scroll", "eval_js"]
+        },
+        "target": { "$ref": "#/definitions/target" },
+        "text": { "type": "string" },
+        "key": { "type": "string" },
+        "timeout_ms": { "type": "number" },
+        "wait_for": { "$ref": "#/definitions/wait_for" },
+        "scroll": { "$ref": "#/definitions/scroll" },
+        "script": { "type": "string" }
+      },
+      "required": ["id", "type"],
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "selector": { "$ref": "#/definitions/selector" },
+        "point": { "$ref": "#/definitions/point" },
+        "frame": { "type": "string" }
+      }
+    },
+    "selector": {
+      "type": "object",
+      "properties": {
+        "strategy": { "type": "string", "enum": ["css", "role", "text", "test_id"] },
+        "value": { "type": "string" }
+      },
+      "required": ["strategy", "value"]
+    },
+    "point": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      },
+      "required": ["x", "y"]
+    },
+    "wait_for": {
+      "type": "object",
+      "properties": {
+        "url_contains": { "type": "string" },
+        "selector": { "$ref": "#/definitions/selector" },
+        "timeout_ms": { "type": "number" }
+      }
+    },
+    "scroll": {
+      "type": "object",
+      "properties": {
+        "delta_x": { "type": "number" },
+        "delta_y": { "type": "number" }
+      },
+      "required": ["delta_x", "delta_y"]
+    }
+  }
+}
