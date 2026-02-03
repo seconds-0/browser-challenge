@@ -11,7 +11,11 @@ async fn main() -> anyhow::Result<()> {
 
     let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let database_url = std::env::var("DATABASE_URL").ok();
-    let store = TelemetryStore::connect(PathBuf::from(data_dir), database_url).await?;
+    let jsonl_enabled = std::env::var("TELEMETRY_JSONL")
+        .map(|v| v != "0")
+        .unwrap_or(true);
+    let store =
+        TelemetryStore::connect(PathBuf::from(data_dir), database_url, jsonl_enabled).await?;
     let app = telemetryd::build_app(store);
 
     let addr: SocketAddr = "0.0.0.0:8081".parse().unwrap();

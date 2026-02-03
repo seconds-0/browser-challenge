@@ -6,7 +6,7 @@ use tempfile::tempdir;
 #[tokio::test]
 async fn stores_run_and_events() {
     let tmp = tempdir().expect("tempdir");
-    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None)
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None, false)
         .await
         .expect("store");
 
@@ -53,7 +53,7 @@ async fn stores_run_and_events() {
 #[tokio::test]
 async fn rejects_mismatched_event_ids() {
     let tmp = tempdir().expect("tempdir");
-    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None)
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None, false)
         .await
         .expect("store");
 

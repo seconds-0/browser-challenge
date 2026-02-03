@@ -41,6 +41,7 @@ pub fn build_app(store: TelemetryStore) -> Router {
         .route("/events", post(post_events))
         .route("/artifacts", post(post_artifacts))
         .route("/runs/:run_id", get(get_run))
+        .route("/runs/:run_id/summary", get(get_run_summary))
         .route("/runs/:run_id/events", get(get_run_events))
         .route("/runs/:run_id/artifacts", get(get_run_artifacts))
         .with_state(store)
@@ -134,6 +135,19 @@ async fn get_run_artifacts(
         Ok(artifacts) => Json(artifacts).into_response(),
         Err(err) => {
             error!(?err, "failed to get run artifacts");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
+
+async fn get_run_summary(
+    axum::extract::State(store): axum::extract::State<TelemetryStore>,
+    Path(run_id): Path<String>,
+) -> impl IntoResponse {
+    match store.get_run_summary(&run_id).await {
+        Ok(summary) => Json(summary).into_response(),
+        Err(err) => {
+            error!(?err, "failed to get run summary");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

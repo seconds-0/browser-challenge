@@ -6,12 +6,14 @@
 
 ### Query endpoints
 - `GET /runs/:run_id`
+- `GET /runs/:run_id/summary`
 - `GET /runs/:run_id/events?limit=1000`
 - `GET /runs/:run_id/artifacts?limit=1000`
 
 ## Database
 - Default: SQLite at `DATA_DIR/telemetry.sqlite`.
 - To use Postgres (e.g., Railway), set `DATABASE_URL`.
+- JSONL persistence can be disabled with `TELEMETRY_JSONL=0`.
 
 ## Hosting (Railway)
 Recommended services:

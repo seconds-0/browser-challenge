@@ -7,7 +7,7 @@ use telemetry::TelemetryStore;
 #[tokio::test]
 async fn rejects_mismatched_payload_in_http() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None)
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None, false)
         .await
         .expect("store");
     let app = telemetryd::build_app(store);
