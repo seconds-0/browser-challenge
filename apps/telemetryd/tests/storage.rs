@@ -43,3 +43,27 @@ async fn stores_run_and_events() {
 
     store.write_manifest(&manifest).expect("write manifest");
 }
+
+#[tokio::test]
+async fn rejects_mismatched_event_ids() {
+    let tmp = tempdir().expect("tempdir");
+    let store = TelemetryStore::connect(tmp.path().to_path_buf())
+        .await
+        .expect("store");
+
+    let event_a = EventEnvelope {
+        run_id: "run-1".to_string(),
+        level_id: "level-1".to_string(),
+        episode_id: "episode-1".to_string(),
+        step_id: None,
+        ts: Utc::now(),
+        kind: "action_started".to_string(),
+        data: serde_json::json!({}),
+    };
+
+    let mut event_b = event_a.clone();
+    event_b.run_id = "run-2".to_string();
+
+    let result = store.append_events(&[event_a, event_b]);
+    assert!(result.is_err());
+}

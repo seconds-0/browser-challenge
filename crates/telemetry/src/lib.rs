@@ -78,6 +78,16 @@ impl TelemetryStore {
             return Ok(());
         }
         let run_id = &events[0].run_id;
+        let level_id = &events[0].level_id;
+        let episode_id = &events[0].episode_id;
+        for event in events {
+            if event.run_id != *run_id
+                || event.level_id != *level_id
+                || event.episode_id != *episode_id
+            {
+                anyhow::bail!("event envelope identifiers are inconsistent");
+            }
+        }
         let run_dir = run_root(&self.data_dir, run_id);
         ensure_dir(&run_dir)?;
         let events_path = run_dir.join("events.jsonl");
