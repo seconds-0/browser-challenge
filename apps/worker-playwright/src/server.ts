@@ -89,7 +89,8 @@ async function getBrowser(): Promise<Browser> {
   return browserPromise;
 }
 
-async function executeAction(page: Page, action: Action): Promise<void> {
+async function executeAction(page: Page, action: Action, timeoutMs: number): Promise<void> {
+  const boundedTimeout = Math.max(0, timeoutMs);
   switch (action.type) {
     case 'click': {
       if (action.target?.point) {
@@ -97,12 +98,12 @@ async function executeAction(page: Page, action: Action): Promise<void> {
         return;
       }
       const locator = resolveLocator(page, action);
-      await locator.click();
+      await locator.click({ timeout: boundedTimeout });
       return;
     }
     case 'type': {
       const locator = resolveLocator(page, action);
-      await locator.fill(action.text ?? '');
+      await locator.fill(action.text ?? '', { timeout: boundedTimeout });
       return;
     }
     case 'press': {
@@ -111,7 +112,7 @@ async function executeAction(page: Page, action: Action): Promise<void> {
       }
       if (action.target?.selector) {
         const locator = resolveLocator(page, action);
-        await locator.focus();
+        await locator.focus({ timeout: boundedTimeout });
       } else if (action.target?.point) {
         await page.mouse.click(action.target.point.x, action.target.point.y);
       }
@@ -119,7 +120,11 @@ async function executeAction(page: Page, action: Action): Promise<void> {
       return;
     }
     case 'wait_for': {
-      const timeout = action.wait_for?.timeout_ms ?? action.timeout_ms;
+      const timeout =
+        Math.min(
+          action.wait_for?.timeout_ms ?? action.timeout_ms ?? boundedTimeout,
+          boundedTimeout,
+        ) || boundedTimeout;
       if (action.wait_for?.url_contains) {
         await page.waitForURL(`**${action.wait_for.url_contains}**`, { timeout });
         return;
@@ -252,15 +257,23 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
     requestFailures.push({ url: req.url(), failure: req.failure()?.errorText });
   });
 
+  const timeStart = Date.now();
+
   if (request.checkpoint?.url) {
-    await page.goto(request.checkpoint.url, { waitUntil: 'domcontentloaded' });
+    const remaining = request.time_budget_ms - (Date.now() - timeStart);
+    if (remaining <= 0) {
+      throw new Error('time_budget_exceeded');
+    }
+    await page.goto(request.checkpoint.url, {
+      waitUntil: 'domcontentloaded',
+      timeout: remaining,
+    });
   }
 
   const initialFingerprint = await page.evaluate(() => document.body?.dataset?.level || '');
 
   const events: EventEnvelope[] = [];
   const actionResults: ActionResult[] = [];
-  const timeStart = Date.now();
   let didFail = false;
 
   const traceEnabled = request.artifact_profile === 'trainer';
@@ -276,10 +289,12 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
       }, action.id),
     );
     try {
-      if (Date.now() - timeStart > request.time_budget_ms) {
+      const remaining = request.time_budget_ms - (Date.now() - timeStart);
+      if (remaining <= 0) {
         throw new Error('time_budget_exceeded');
       }
-      await executeAction(page, action);
+      page.setDefaultTimeout(remaining);
+      await executeAction(page, action, remaining);
       const stepEnd = new Date();
       actionResults.push({
         action_id: action.id,
