@@ -64,6 +64,15 @@ async fn post_events(
     axum::extract::State(store): axum::extract::State<TelemetryStore>,
     Json(payload): Json<EventsPayload>,
 ) -> impl IntoResponse {
+    for event in &payload.events {
+        if event.run_id != payload.run_id
+            || event.level_id != payload.level_id
+            || event.episode_id != payload.episode_id
+        {
+            return StatusCode::BAD_REQUEST;
+        }
+    }
+
     if let Err(err) = store.insert_run(&payload.run_id, "in_progress").await {
         error!(?err, "failed to insert run");
         return StatusCode::INTERNAL_SERVER_ERROR;
@@ -81,6 +90,13 @@ async fn post_artifacts(
     axum::extract::State(store): axum::extract::State<TelemetryStore>,
     Json(payload): Json<ArtifactsPayload>,
 ) -> impl IntoResponse {
+    if payload.manifest.run_id != payload.run_id
+        || payload.manifest.level_id != payload.level_id
+        || payload.manifest.episode_id != payload.episode_id
+    {
+        return StatusCode::BAD_REQUEST;
+    }
+
     if let Err(err) = store.write_manifest(&payload.manifest) {
         error!(?err, "failed to write manifest");
         return StatusCode::INTERNAL_SERVER_ERROR;
