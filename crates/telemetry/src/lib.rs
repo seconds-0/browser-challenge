@@ -21,7 +21,8 @@ impl TelemetryStore {
         ensure_dir(&data_dir)?;
         sqlx::any::install_default_drivers();
         let db_path = data_dir.join("telemetry.sqlite");
-        let url = database_url.unwrap_or_else(|| format!("sqlite://{}", db_path.display()));
+        let url =
+            database_url.unwrap_or_else(|| format!("sqlite://{}?mode=rwc", db_path.display()));
         let use_postgres = url.starts_with("postgres://") || url.starts_with("postgresql://");
         let db = AnyPoolOptions::new()
             .max_connections(10)
