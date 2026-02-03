@@ -19,6 +19,7 @@ pub struct TelemetryStore {
 impl TelemetryStore {
     pub async fn connect(data_dir: PathBuf, database_url: Option<String>) -> Result<Self> {
         ensure_dir(&data_dir)?;
+        sqlx::any::install_default_drivers();
         let db_path = data_dir.join("telemetry.sqlite");
         let url = database_url.unwrap_or_else(|| format!("sqlite://{}", db_path.display()));
         let use_postgres = url.starts_with("postgres://") || url.starts_with("postgresql://");
