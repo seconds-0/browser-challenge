@@ -6,6 +6,7 @@
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
     "test:e2e": "pnpm --filter worker-playwright test:e2e",
     "dev:worker": "pnpm --filter worker-playwright dev",
     "dev:fixture": "pnpm --filter fixture-web dev"
