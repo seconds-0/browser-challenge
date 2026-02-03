@@ -53,7 +53,7 @@ test('Scenario 1: click correct button advances the level', async () => {
   expect(result.artifacts).toBeTruthy();
   if (result.artifacts) {
     for (const artifact of result.artifacts.artifacts) {
-      await expect(fs.stat(artifact.path)).resolves.toBeTruthy();
+      await expect(fs.stat(path.join(dataDir, artifact.path))).resolves.toBeTruthy();
     }
   }
 });

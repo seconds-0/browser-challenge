@@ -191,24 +191,33 @@ async function writeArtifacts(
   traceEnabled: boolean,
 ): Promise<ArtifactManifest | undefined> {
   const artifacts: ArtifactRef[] = [];
+  const toManifestPath = (absolutePath: string) => path.relative(DATA_DIR, absolutePath);
 
   if (profile === 'trainer' || didFail) {
     const screenshotPath = path.join(contextDir, 'snapshots', 'final.png');
     await mkdir(path.dirname(screenshotPath), { recursive: true });
     await page.screenshot({ path: screenshotPath, fullPage: true });
-    artifacts.push({ kind: 'screenshot', path: screenshotPath, content_type: 'image/png' });
+    artifacts.push({
+      kind: 'screenshot',
+      path: toManifestPath(screenshotPath),
+      content_type: 'image/png',
+    });
 
     const htmlPath = path.join(contextDir, 'dom', 'final.html');
     await mkdir(path.dirname(htmlPath), { recursive: true });
     const html = await page.content();
     await writeFile(htmlPath, html, 'utf-8');
-    artifacts.push({ kind: 'dom', path: htmlPath, content_type: 'text/html' });
+    artifacts.push({ kind: 'dom', path: toManifestPath(htmlPath), content_type: 'text/html' });
   }
 
   if (traceEnabled) {
     const tracePath = path.join(contextDir, 'trace', 'trace.zip');
     await mkdir(path.dirname(tracePath), { recursive: true });
-    artifacts.push({ kind: 'trace', path: tracePath, content_type: 'application/zip' });
+    artifacts.push({
+      kind: 'trace',
+      path: toManifestPath(tracePath),
+      content_type: 'application/zip',
+    });
   }
 
   if (!artifacts.length) {
