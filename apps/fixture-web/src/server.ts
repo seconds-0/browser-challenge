@@ -18,6 +18,11 @@ app.get('/', async (_request, reply) => {
       <li><a href="/level/3">Level 3</a></li>
       <li><a href="/level/4">Level 4</a></li>
       <li><a href="/level/5">Level 5</a></li>
+      <li><a href="/level/6">Level 6</a></li>
+      <li><a href="/level/7">Level 7</a></li>
+      <li><a href="/level/8">Level 8</a></li>
+      <li><a href="/level/9">Level 9</a></li>
+      <li><a href="/level/10">Level 10</a></li>
     </ol>
     `,
     ),
@@ -156,6 +161,140 @@ app.get('/level/5', async (_request, reply) => {
       });
       document.getElementById('press-decoy').addEventListener('keydown', () => {
         document.getElementById('status').textContent = 'wrong target';
+      });
+    </script>
+    `,
+    ),
+  );
+});
+
+app.get('/level/6', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '6',
+      `
+    <h1>Level 6</h1>
+    <p>Scroll down to find the target.</p>
+    <div style="height: 1600px;"></div>
+    <button data-testid="scroll-target" id="scroll-target" style="margin-bottom: 24px;">Scroll Target</button>
+    <div id="status"></div>
+    <script>
+      document.getElementById('scroll-target').addEventListener('click', () => {
+        document.body.dataset.level = 'done';
+        document.getElementById('status').textContent = 'advanced';
+      });
+    </script>
+    `,
+    ),
+  );
+});
+
+app.get('/level/7', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '7',
+      `
+    <h1>Level 7</h1>
+    <p>Use eval_js to advance.</p>
+    <div id="status"></div>
+    <script>
+      window.advanceLevel = () => {
+        document.body.dataset.level = 'done';
+        document.getElementById('status').textContent = 'advanced';
+      };
+    </script>
+    `,
+    ),
+  );
+});
+
+app.get('/level/8', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '8',
+      `
+    <h1>Level 8</h1>
+    <p>Navigate to the next URL.</p>
+    <button data-testid="nav" id="nav">Go next</button>
+    <script>
+      document.getElementById('nav').addEventListener('click', () => {
+        window.location.href = '/level/8/next';
+      });
+    </script>
+    `,
+    ),
+  );
+});
+
+app.get('/level/8/next', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '8-next',
+      `
+    <h1>Level 8 Complete</h1>
+    <p>advanced</p>
+    `,
+    ),
+  );
+});
+
+app.get('/level/9', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '9',
+      `
+    <h1>Level 9</h1>
+    <p>Use role, text, and CSS selectors in order.</p>
+    <button id="role-target">Role Target</button>
+    <button id="text-target">Text Target</button>
+    <button id="css-target">CSS Target</button>
+    <div id="status"></div>
+    <script>
+      let progress = 0;
+      const status = document.getElementById('status');
+      document.getElementById('role-target').addEventListener('click', () => {
+        progress = 1;
+        status.textContent = 'role';
+      });
+      document.getElementById('text-target').addEventListener('click', () => {
+        if (progress === 1) {
+          progress = 2;
+          status.textContent = 'text';
+        }
+      });
+      document.getElementById('css-target').addEventListener('click', () => {
+        if (progress === 2) {
+          document.body.dataset.level = 'done';
+          status.textContent = 'advanced';
+        }
+      });
+    </script>
+    `,
+    ),
+  );
+});
+
+app.get('/level/10', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '10',
+      `
+    <h1>Level 10</h1>
+    <p>Click the target using coordinates.</p>
+    <button data-testid="coord-target" id="coord-target" style="position: absolute; left: 40px; top: 40px; width: 140px; height: 40px;">
+      Coord Target
+    </button>
+    <div id="status"></div>
+    <script>
+      document.getElementById('coord-target').addEventListener('click', () => {
+        document.body.dataset.level = 'done';
+        document.getElementById('status').textContent = 'advanced';
       });
     </script>
     `,
