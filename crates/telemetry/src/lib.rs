@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{any::AnyKind, any::AnyPoolOptions, Pool, Any};
+use sqlx::{any::AnyPoolOptions, Any, Pool};
 
 use common::{ensure_dir, run_root};
 use events::{ArtifactManifest, EventEnvelope, RunMetadata};
@@ -13,7 +13,7 @@ use events::{ArtifactManifest, EventEnvelope, RunMetadata};
 pub struct TelemetryStore {
     pub data_dir: PathBuf,
     pub db: Pool<Any>,
-    pub db_kind: AnyKind,
+    pub use_postgres: bool,
 }
 
 impl TelemetryStore {
@@ -21,8 +21,11 @@ impl TelemetryStore {
         ensure_dir(&data_dir)?;
         let db_path = data_dir.join("telemetry.sqlite");
         let url = database_url.unwrap_or_else(|| format!("sqlite://{}", db_path.display()));
-        let db = AnyPoolOptions::new().max_connections(10).connect(&url).await?;
-        let db_kind = db.any_kind();
+        let use_postgres = url.starts_with("postgres://") || url.starts_with("postgresql://");
+        let db = AnyPoolOptions::new()
+            .max_connections(10)
+            .connect(&url)
+            .await?;
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS runs (
                 run_id TEXT PRIMARY KEY,
@@ -69,14 +72,15 @@ impl TelemetryStore {
         Ok(Self {
             data_dir,
             db,
-            db_kind,
+            use_postgres,
         })
     }
 
     fn sql(&self, sqlite: &'static str, postgres: &'static str) -> &'static str {
-        match self.db_kind {
-            AnyKind::Postgres => postgres,
-            _ => sqlite,
+        if self.use_postgres {
+            postgres
+        } else {
+            sqlite
         }
     }
 
@@ -99,10 +103,10 @@ impl TelemetryStore {
             "UPDATE runs SET status = ? WHERE run_id = ?",
             "UPDATE runs SET status = $1 WHERE run_id = $2",
         ))
-            .bind(status)
-            .bind(run_id)
-            .execute(&self.db)
-            .await?;
+        .bind(status)
+        .bind(run_id)
+        .execute(&self.db)
+        .await?;
         Ok(())
     }
 
@@ -257,13 +261,15 @@ impl TelemetryStore {
         .await?;
         let artifacts = rows
             .into_iter()
-            .map(|(kind, path, content_type, size_bytes, sha256)| events::ArtifactRef {
-                kind,
-                path,
-                content_type,
-                size_bytes: size_bytes.map(|v| v as u64),
-                sha256,
-            })
+            .map(
+                |(kind, path, content_type, size_bytes, sha256)| events::ArtifactRef {
+                    kind,
+                    path,
+                    content_type,
+                    size_bytes: size_bytes.map(|v| v as u64),
+                    sha256,
+                },
+            )
             .collect();
         Ok(artifacts)
     }
