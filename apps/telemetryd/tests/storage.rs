@@ -44,7 +44,10 @@ async fn stores_run_and_events() {
         }],
     };
 
-    store.write_manifest(&manifest).await.expect("write manifest");
+    store
+        .write_manifest(&manifest)
+        .await
+        .expect("write manifest");
 }
 
 #[tokio::test]
