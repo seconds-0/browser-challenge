@@ -224,11 +224,21 @@ async function writeArtifacts(
 }
 
 async function sendTelemetry(endpoint: string, payload: unknown): Promise<void> {
-  await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  const timeoutMs = Number(process.env.TELEMETRY_TIMEOUT_MS || 500);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    console.warn('telemetry_post_failed', { endpoint, error: String(err) });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
