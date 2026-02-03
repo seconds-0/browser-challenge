@@ -259,102 +259,143 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
 
   const timeStart = Date.now();
 
-  if (request.checkpoint?.url) {
-    const remaining = request.time_budget_ms - (Date.now() - timeStart);
-    if (remaining <= 0) {
-      throw new Error('time_budget_exceeded');
-    }
-    await page.goto(request.checkpoint.url, {
-      waitUntil: 'domcontentloaded',
-      timeout: remaining,
-    });
-  }
-
-  const initialFingerprint = await page.evaluate(() => document.body?.dataset?.level || '');
-
   const events: EventEnvelope[] = [];
   const actionResults: ActionResult[] = [];
   let didFail = false;
+  let reward: RewardSignal = { advanced: false, reason: 'no_change' };
+  let artifacts: ArtifactManifest | undefined;
+  let runError: string | undefined;
 
   const traceEnabled = request.artifact_profile === 'trainer';
-  if (traceEnabled) {
-    await context.tracing.start({ screenshots: true, snapshots: true });
-  }
+  const tracePath = path.join(episodeDir, 'trace', 'trace.zip');
+  let traceActive = false;
 
-  for (const action of request.plan.actions) {
-    const stepStart = new Date();
-    events.push(
-      createEvent(request.run_id, request.level_id, episodeId, 'action_started', {
-        action,
-      }, action.id),
-    );
-    try {
+  try {
+    if (traceEnabled) {
+      await context.tracing.start({ screenshots: true, snapshots: true });
+      traceActive = true;
+    }
+
+    if (request.checkpoint?.url) {
       const remaining = request.time_budget_ms - (Date.now() - timeStart);
       if (remaining <= 0) {
         throw new Error('time_budget_exceeded');
       }
-      page.setDefaultTimeout(remaining);
-      await executeAction(page, action, remaining);
-      const stepEnd = new Date();
-      actionResults.push({
-        action_id: action.id,
-        success: true,
-        error: undefined,
-        started_at: stepStart.toISOString(),
-        ended_at: stepEnd.toISOString(),
-        duration_ms: stepEnd.getTime() - stepStart.getTime(),
+      await page.goto(request.checkpoint.url, {
+        waitUntil: 'domcontentloaded',
+        timeout: remaining,
       });
-      events.push(
-        createEvent(request.run_id, request.level_id, episodeId, 'action_finished', {
-          action_id: action.id,
-        }, action.id),
-      );
-    } catch (err) {
-      didFail = true;
-      const stepEnd = new Date();
-      actionResults.push({
-        action_id: action.id,
-        success: false,
-        error: err instanceof Error ? err.message : 'unknown_error',
-        started_at: stepStart.toISOString(),
-        ended_at: stepEnd.toISOString(),
-        duration_ms: stepEnd.getTime() - stepStart.getTime(),
-      });
-      events.push(
-        createEvent(request.run_id, request.level_id, episodeId, 'action_failed', {
-          action_id: action.id,
-          error: err instanceof Error ? err.message : String(err),
-        }, action.id),
-      );
-      break;
     }
+
+    const initialFingerprint = await page.evaluate(() => document.body?.dataset?.level || '');
+
+    for (const action of request.plan.actions) {
+      const stepStart = new Date();
+      events.push(
+        createEvent(
+          request.run_id,
+          request.level_id,
+          episodeId,
+          'action_started',
+          {
+            action,
+          },
+          action.id,
+        ),
+      );
+      try {
+        const remaining = request.time_budget_ms - (Date.now() - timeStart);
+        if (remaining <= 0) {
+          throw new Error('time_budget_exceeded');
+        }
+        page.setDefaultTimeout(remaining);
+        await executeAction(page, action, remaining);
+        const stepEnd = new Date();
+        actionResults.push({
+          action_id: action.id,
+          success: true,
+          error: undefined,
+          started_at: stepStart.toISOString(),
+          ended_at: stepEnd.toISOString(),
+          duration_ms: stepEnd.getTime() - stepStart.getTime(),
+        });
+        events.push(
+          createEvent(
+            request.run_id,
+            request.level_id,
+            episodeId,
+            'action_finished',
+            {
+              action_id: action.id,
+            },
+            action.id,
+          ),
+        );
+      } catch (err) {
+        didFail = true;
+        const stepEnd = new Date();
+        actionResults.push({
+          action_id: action.id,
+          success: false,
+          error: err instanceof Error ? err.message : 'unknown_error',
+          started_at: stepStart.toISOString(),
+          ended_at: stepEnd.toISOString(),
+          duration_ms: stepEnd.getTime() - stepStart.getTime(),
+        });
+        events.push(
+          createEvent(
+            request.run_id,
+            request.level_id,
+            episodeId,
+            'action_failed',
+            {
+              action_id: action.id,
+              error: err instanceof Error ? err.message : String(err),
+            },
+            action.id,
+          ),
+        );
+        break;
+      }
+    }
+
+    const finalFingerprint = await page.evaluate(() => document.body?.dataset?.level || '');
+    reward = {
+      advanced: finalFingerprint !== initialFingerprint,
+      reason: finalFingerprint !== initialFingerprint ? 'level_changed' : 'no_change',
+      level_fingerprint: finalFingerprint || undefined,
+    };
+
+    if (traceEnabled) {
+      await mkdir(path.dirname(tracePath), { recursive: true });
+      await context.tracing.stop({ path: tracePath });
+      traceActive = false;
+    }
+
+    artifacts = await writeArtifacts(
+      request.run_id,
+      request.level_id,
+      episodeId,
+      request.artifact_profile,
+      page,
+      episodeDir,
+      didFail,
+      traceEnabled,
+    );
+  } catch (err) {
+    didFail = true;
+    runError = err instanceof Error ? err.message : String(err);
+  } finally {
+    if (traceEnabled && traceActive) {
+      try {
+        await mkdir(path.dirname(tracePath), { recursive: true });
+        await context.tracing.stop({ path: tracePath });
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+    await context.close();
   }
-
-  const finalFingerprint = await page.evaluate(() => document.body?.dataset?.level || '');
-  const reward: RewardSignal = {
-    advanced: finalFingerprint !== initialFingerprint,
-    reason: finalFingerprint !== initialFingerprint ? 'level_changed' : 'no_change',
-    level_fingerprint: finalFingerprint || undefined,
-  };
-
-  if (traceEnabled) {
-    const tracePath = path.join(episodeDir, 'trace', 'trace.zip');
-    await mkdir(path.dirname(tracePath), { recursive: true });
-    await context.tracing.stop({ path: tracePath });
-  }
-
-  const artifacts = await writeArtifacts(
-    request.run_id,
-    request.level_id,
-    episodeId,
-    request.artifact_profile,
-    page,
-    episodeDir,
-    didFail,
-    traceEnabled,
-  );
-
-  await context.close();
 
   if (request.telemetry_endpoint) {
     await sendTelemetry(`${request.telemetry_endpoint}/events`, {
@@ -394,6 +435,7 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
       console_messages: consoleMessages.length,
       page_errors: pageErrors.length,
       request_failures: requestFailures.length,
+      run_error: runError,
     },
   };
 }
