@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "format": "prettier --check .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
@@ -17,6 +18,7 @@
     "typescript-eslint": "^8.12.2",
     "eslint-plugin-import": "^2.31.0",
     "prettier": "^3.3.3",
+    "@vitest/coverage-v8": "^2.1.4",
     "vitest": "^2.1.4"
   }
 }

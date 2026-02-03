@@ -30,6 +30,9 @@ jobs:
       - name: JS tests
         run: pnpm test
 
+      - name: JS coverage
+        run: pnpm test:coverage
+
       - name: Typecheck
         run: pnpm typecheck
 
