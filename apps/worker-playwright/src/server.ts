@@ -109,6 +109,12 @@ async function executeAction(page: Page, action: Action): Promise<void> {
       if (!action.key) {
         throw new Error('press action missing key');
       }
+      if (action.target?.selector) {
+        const locator = resolveLocator(page, action);
+        await locator.focus();
+      } else if (action.target?.point) {
+        await page.mouse.click(action.target.point.x, action.target.point.y);
+      }
       await page.keyboard.press(action.key);
       return;
     }
