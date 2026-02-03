@@ -126,3 +126,60 @@ test('Scenario 4: wait_for respects timeout and sees delayed button', async () =
   expect(result.result).toBe('ok');
   expect(result.reward.advanced).toBeTruthy();
 });
+
+test('Scenario 5: press action focuses target before keypress', async () => {
+  const runId = `run-press-${Date.now()}`;
+  const plan = {
+    actions: [
+      {
+        id: 'press-space',
+        type: 'press',
+        key: 'Space',
+        target: { selector: { strategy: 'test_id', value: 'press-target' } },
+      },
+    ],
+  };
+
+  const result = await runEpisode(runId, 'level-5', 'http://localhost:3000/level/5', plan);
+  expect(result.result).toBe('ok');
+  expect(result.reward.advanced).toBeTruthy();
+});
+
+test('Scenario 6: time budget caps long wait_for', async () => {
+  const runId = `run-budget-${Date.now()}`;
+  const plan = {
+    actions: [
+      {
+        id: 'wait-button',
+        type: 'wait_for',
+        wait_for: {
+          selector: { strategy: 'test_id', value: 'delayed' },
+          timeout_ms: 5000,
+        },
+      },
+    ],
+  };
+
+  const response = await fetch('http://localhost:8080/episode/run', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      run_id: runId,
+      level_id: 'level-4',
+      checkpoint: { url: 'http://localhost:3000/level/4' },
+      plan,
+      time_budget_ms: 200,
+      artifact_profile: 'runner',
+      telemetry_endpoint: 'http://localhost:8081',
+    }),
+  });
+
+  expect(response.ok).toBeTruthy();
+  const result = (await response.json()) as {
+    result: string;
+    actions_executed: { success: boolean; error?: string }[];
+  };
+  expect(result.result).toBe('failed');
+  expect(result.actions_executed[0]?.success).toBe(false);
+  expect(result.actions_executed[0]?.error).toContain('Timeout');
+});

@@ -17,6 +17,7 @@ app.get('/', async (_request, reply) => {
       <li><a href="/level/2">Level 2</a></li>
       <li><a href="/level/3">Level 3</a></li>
       <li><a href="/level/4">Level 4</a></li>
+      <li><a href="/level/5">Level 5</a></li>
     </ol>
     `,
     ),
@@ -128,6 +129,34 @@ app.get('/level/4', async (_request, reply) => {
         });
         document.body.appendChild(btn);
       }, 1500);
+    </script>
+    `,
+    ),
+  );
+});
+
+app.get('/level/5', async (_request, reply) => {
+  reply.type('text/html');
+  return reply.send(
+    pageShell(
+      '5',
+      `
+    <h1>Level 5</h1>
+    <p>Press Space on the focused target.</p>
+    <button data-testid="press-target" id="press-target">Target</button>
+    <button data-testid="press-decoy" id="press-decoy">Decoy</button>
+    <div id="status"></div>
+    <script>
+      const target = document.getElementById('press-target');
+      target.addEventListener('keydown', (event) => {
+        if (event.code === 'Space') {
+          document.body.dataset.level = 'done';
+          document.getElementById('status').textContent = 'advanced';
+        }
+      });
+      document.getElementById('press-decoy').addEventListener('keydown', () => {
+        document.getElementById('status').textContent = 'wrong target';
+      });
     </script>
     `,
     ),

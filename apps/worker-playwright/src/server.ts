@@ -285,6 +285,14 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
   let artifacts: ArtifactManifest | undefined;
   let runError: string | undefined;
 
+  events.push(
+    createEvent(request.run_id, request.level_id, episodeId, 'episode_started', {
+      artifact_profile: request.artifact_profile,
+      plan_actions: request.plan.actions.length,
+      checkpoint_url: request.checkpoint?.url ?? null,
+    }),
+  );
+
   const traceEnabled = request.artifact_profile === 'trainer';
   const tracePath = path.join(episodeDir, 'trace', 'trace.zip');
   let traceActive = false;
@@ -416,6 +424,14 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
     await context.close();
   }
 
+  events.push(
+    createEvent(request.run_id, request.level_id, episodeId, 'episode_finished', {
+      result: didFail ? 'failed' : 'ok',
+      reward,
+      run_error: runError ?? null,
+    }),
+  );
+
   if (request.telemetry_endpoint) {
     await sendTelemetry(`${request.telemetry_endpoint}/events`, {
       run_id: request.run_id,
@@ -455,6 +471,7 @@ async function runEpisode(request: EpisodeRequest): Promise<EpisodeResult> {
       page_errors: pageErrors.length,
       request_failures: requestFailures.length,
       run_error: runError,
+      episode_id: episodeId,
     },
   };
 }
@@ -470,7 +487,25 @@ app.post('/episode/run', async (request, reply) => {
     return { error: parsed.error.flatten() };
   }
 
+  const start = Date.now();
+  request.log.info(
+    {
+      run_id: parsed.data.run_id,
+      level_id: parsed.data.level_id,
+      artifact_profile: parsed.data.artifact_profile,
+    },
+    'episode_started',
+  );
   const result = await runEpisode(parsed.data);
+  request.log.info(
+    {
+      run_id: parsed.data.run_id,
+      level_id: parsed.data.level_id,
+      result: result.result,
+      duration_ms: Date.now() - start,
+    },
+    'episode_finished',
+  );
   return result;
 });
 
