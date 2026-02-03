@@ -6,7 +6,7 @@ use tempfile::tempdir;
 #[tokio::test]
 async fn stores_run_and_events() {
     let tmp = tempdir().expect("tempdir");
-    let store = TelemetryStore::connect(tmp.path().to_path_buf())
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None)
         .await
         .expect("store");
 
@@ -23,10 +23,13 @@ async fn stores_run_and_events() {
         data: serde_json::json!({"action": "click"}),
     };
 
-    store.append_events(&[event]).expect("append events");
+    store.append_events(&[event]).await.expect("append events");
 
     let run = store.get_run(run_id).await.unwrap();
     assert!(run.is_some());
+
+    let events = store.get_events(run_id, 10).await.expect("get events");
+    assert_eq!(events.len(), 1);
 
     let manifest = ArtifactManifest {
         run_id: run_id.to_string(),
@@ -41,13 +44,13 @@ async fn stores_run_and_events() {
         }],
     };
 
-    store.write_manifest(&manifest).expect("write manifest");
+    store.write_manifest(&manifest).await.expect("write manifest");
 }
 
 #[tokio::test]
 async fn rejects_mismatched_event_ids() {
     let tmp = tempdir().expect("tempdir");
-    let store = TelemetryStore::connect(tmp.path().to_path_buf())
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None)
         .await
         .expect("store");
 
@@ -64,6 +67,6 @@ async fn rejects_mismatched_event_ids() {
     let mut event_b = event_a.clone();
     event_b.run_id = "run-2".to_string();
 
-    let result = store.append_events(&[event_a, event_b]);
+    let result = store.append_events(&[event_a, event_b]).await;
     assert!(result.is_err());
 }

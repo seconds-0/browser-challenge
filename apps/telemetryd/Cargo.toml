@@ -20,3 +20,4 @@ common = { path = "../../crates/common" }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+tower = "0.5"
