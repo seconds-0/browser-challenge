@@ -1,5 +1,6 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
+use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 use telemetry::TelemetryStore;
@@ -42,4 +43,71 @@ async fn rejects_mismatched_payload_in_http() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn returns_run_summary() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None, false)
+        .await
+        .expect("store");
+    let app = telemetryd::build_app(store);
+
+    let payload = serde_json::json!({
+        "run_id": "run-summary",
+        "level_id": "level-1",
+        "episode_id": "episode-1",
+        "events": [
+            {
+                "run_id": "run-summary",
+                "level_id": "level-1",
+                "episode_id": "episode-1",
+                "step_id": null,
+                "ts": "2026-02-03T00:00:00Z",
+                "kind": "action_started",
+                "data": {}
+            },
+            {
+                "run_id": "run-summary",
+                "level_id": "level-1",
+                "episode_id": "episode-1",
+                "step_id": null,
+                "ts": "2026-02-03T00:00:01Z",
+                "kind": "alert",
+                "data": {}
+            }
+        ]
+    });
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/events")
+                .header("content-type", "application/json")
+                .body(Body::from(payload.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/runs/run-summary/summary")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let summary: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(summary["total_events"], 2);
+    assert_eq!(summary["by_kind"]["action_started"], 1);
+    assert_eq!(summary["by_kind"]["alert"], 1);
 }

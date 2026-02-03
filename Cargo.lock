@@ -2140,6 +2140,7 @@ dependencies = [
  "chrono",
  "common",
  "events",
+ "http-body-util",
  "serde",
  "serde_json",
  "sqlx",

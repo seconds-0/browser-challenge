@@ -73,3 +73,33 @@ async fn rejects_mismatched_event_ids() {
     let result = store.append_events(&[event_a, event_b]).await;
     assert!(result.is_err());
 }
+
+#[tokio::test]
+async fn summary_counts_events() {
+    let tmp = tempdir().expect("tempdir");
+    let store = TelemetryStore::connect(tmp.path().to_path_buf(), None, false)
+        .await
+        .expect("store");
+
+    let run_id = "run-summary";
+    store.insert_run(run_id, "in_progress").await.unwrap();
+
+    let base = EventEnvelope {
+        run_id: run_id.to_string(),
+        level_id: "level-1".to_string(),
+        episode_id: "episode-1".to_string(),
+        step_id: None,
+        ts: Utc::now(),
+        kind: "action_started".to_string(),
+        data: serde_json::json!({}),
+    };
+    let mut alert = base.clone();
+    alert.kind = "alert".to_string();
+
+    store.append_events(&[base, alert]).await.unwrap();
+
+    let summary = store.get_run_summary(run_id).await.unwrap();
+    assert_eq!(summary.total_events, 2);
+    assert_eq!(summary.by_kind.get("action_started"), Some(&1));
+    assert_eq!(summary.by_kind.get("alert"), Some(&1));
+}
