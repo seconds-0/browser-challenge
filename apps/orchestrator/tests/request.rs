@@ -11,6 +11,8 @@ fn builds_episode_request() {
         "http://example.com".to_string(),
         plan,
         "http://telemetry".to_string(),
+        1000,
+        "trainer".to_string(),
     );
 
     assert_eq!(request.run_id, run_id);
