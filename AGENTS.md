@@ -18,6 +18,8 @@ This repo implements SwarmHarness (see `docs/prd.md`). Follow TDD, strict typing
 - `pnpm lint`
 - `pnpm test`
 - `pnpm test:e2e`
+- `pnpm smoke` (local end-to-end episode)
+- `pnpm smoke:railway` (hosted end-to-end episode)
 - `cargo fmt --all -- --check`
 - `cargo clippy --all-targets -- -D warnings`
 - `cargo test`

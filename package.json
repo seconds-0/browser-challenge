@@ -12,7 +12,8 @@
     "dev:worker": "pnpm --filter worker-playwright dev",
     "dev:tmux": "tools/dev/ghostty-tmux.sh",
     "dev:fixture": "pnpm --filter fixture-web dev",
-    "smoke": "tools/dev/smoke.sh"
+    "smoke": "tools/dev/smoke.sh",
+    "smoke:railway": "tools/dev/smoke-railway.sh"
   },
   "devDependencies": {
     "eslint": "^9.13.0",

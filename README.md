@@ -11,6 +11,12 @@ pnpm test:e2e
 cargo test
 ```
 
+## Smoke Tests
+```bash
+pnpm smoke
+pnpm smoke:railway
+```
+
 ## Services
 - `apps/telemetryd`: Rust HTTP ingest (SQLite + JSONL)
 - `apps/worker-playwright`: TS Playwright worker

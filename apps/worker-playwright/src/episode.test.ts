@@ -145,8 +145,8 @@ describe('runEpisode', () => {
     expect(result.result).toBe('failed');
     expect(result.actions_executed[0]?.success).toBe(false);
 
-    const eventsCall = sendTelemetryMock.mock.calls.find(
-      ([endpoint]: [string]) => endpoint.endsWith('/events'),
+    const eventsCall = sendTelemetryMock.mock.calls.find((call) =>
+      String(call[0]).endsWith('/events'),
     );
     expect(eventsCall).toBeTruthy();
     const payload = eventsCall?.[1] as { events: { kind: string }[] };
