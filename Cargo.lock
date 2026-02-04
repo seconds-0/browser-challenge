@@ -1800,10 +1800,13 @@ dependencies = [
 name = "skill"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
+ "common",
  "events",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
